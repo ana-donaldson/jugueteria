@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lector Juguetería</title>
+    <script src="cordova.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
+        #resultado { margin-top: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: left; }
+        .boton { background-color: #007bff; color: white; padding: 15px 30px; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; width: 100%; margin-top: 20px; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Escanear Producto</h1>
+    <button class="boton" onclick="escanearCodigo()">Abrir Cámara</button>
+    <div id="resultado">Esperando escaneo...</div>
+
+    <script>
+        // Esperar a que Cordova esté listo
+        document.addEventListener('deviceready', onDeviceReady, false);
+
+        function onDeviceReady() {
+            console.log('Cordova listo');
+        }
+
+        function escanearCodigo() {
+            cordova.plugins.barcodeScanner.scan(
+                function (result) {
+                    if (!result.cancelled) {
+                        document.getElementById('resultado').innerHTML = "Leyendo: " + result.text + "...";
+                        consultarBackend(result.text);
+                    } else {
+                        document.getElementById('resultado').innerHTML = "Escaneo cancelado.";
+                    }
+                },
+                function (error) {
+                    document.getElementById('resultado').innerHTML = "<span class='error'>Error: " + error + "</span>";
+                }
+            );
+        }
+
+        function consultarBackend(codigo) {
+            // ⚠️ ACÁ VA TU IP LOCAL
+            const url = 'http://192.168.0.13/jugueteria/endpoints/buscar_producto.php?codigo=' + codigo;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.exito) {
+                        const p = data.datos;
+                        document.getElementById('resultado').innerHTML = `
+                            <h3>Producto Encontrado:</h3>
+                            <p><strong>Nombre:</strong> ${p.descripcion}</p>
+                            <p><strong>Precio:</strong> $${p.precio_final}</p>
+                            <p><strong>Stock:</strong> ${p.stock}</p>
+                        `;
+                    } else {
+                        document.getElementById('resultado').innerHTML = "<span class='error'>Producto no encontrado en el sistema.</span>";
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('resultado').innerHTML = "<span class='error'>Error de conexión: " + err.message + "</span>";
+                });
+        }
+    </script>
+</body>
+</html>
